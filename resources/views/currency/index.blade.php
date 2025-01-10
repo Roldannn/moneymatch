@@ -28,7 +28,7 @@
             <div class="container mt-5">
                 <div class="row justify-content-center">
                     <div class="col-md-6">
-                        <h1 class="text-center mb-4">MoneyMatch - Calculadora de Divisas (Alpha Version)</h1>
+                        <h1 class="text-center mb-4">MoneyMatch - Calculadora Indicadores / Equivalencias (Alpha Version)</h1>
 
                         <!-- Formulario para la conversión -->
                         <form method="POST" action="{{ route('currency.convert') }}" class="bg-white p-4 rounded shadow-sm">
