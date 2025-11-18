@@ -3,25 +3,81 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Currency; // Importa el modelo Currency
+use App\Models\Currency;
+use App\Models\CurrencyEquivalence;
 
 class CurrencyController extends Controller
 {
     public function index()
     {
-        // Obtiene todas las monedas de la base de datos
-        $currencies = Currency::all()->keyBy('country'); // Agrupa por el código del país
+        // Obtener solo monedas que tienen equivalencias registradas
+        $currencyIds = CurrencyEquivalence::distinct()->pluck('currency_id');
+        $currencies = Currency::whereIn('id', $currencyIds)
+            ->orderBy('country')
+            ->get();
+
+        // Obtener años disponibles desde las equivalencias
+        $years = CurrencyEquivalence::distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year');
+
+        // Obtener meses disponibles desde las equivalencias
+        $months = CurrencyEquivalence::distinct()
+            ->orderBy('month')
+            ->pluck('month')
+            ->unique()
+            ->sort();
+
+        // Mapeo de números de mes a nombres
+        $monthNames = [
+            1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+            5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+            9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
+        ];
+
+        // Obtener meses disponibles por año para JavaScript
+        $monthsByYear = CurrencyEquivalence::select('year', 'month')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->orderBy('month')
+            ->get()
+            ->groupBy('year')
+            ->map(function ($group) {
+                return $group->pluck('month')->sort()->values();
+            });
 
         // Pasa los datos a la vista
-        return view('currency.index', ['currencies' => $currencies]);
+        return view('currency.index', [
+            'currencies' => $currencies,
+            'years' => $years,
+            'months' => $months,
+            'monthNames' => $monthNames,
+            'monthsByYear' => $monthsByYear
+        ]);
     }
 
     public function convert(Request $request)
     {
         $request->validate([
-            'country' => 'required',
+            'country' => 'required|exists:currencies,id',
             'amount' => 'required|numeric|min:0',
+            'year' => 'required|integer',
+            'month' => 'required|integer|min:1|max:12',
         ]);
+        
+        // Validar que el año y mes existan en las equivalencias
+        $yearExists = CurrencyEquivalence::where('year', $request->input('year'))->exists();
+        $monthExists = CurrencyEquivalence::where('year', $request->input('year'))
+            ->where('month', $request->input('month'))
+            ->exists();
+        
+        if (!$yearExists) {
+            return back()->withErrors(['year' => 'El año seleccionado no tiene datos disponibles.'])->withInput();
+        }
+        
+        if (!$monthExists) {
+            return back()->withErrors(['month' => 'El mes seleccionado no tiene datos disponibles para ese año.'])->withInput();
+        }
 
         $currency = Currency::where('id', $request->input('country'))->first();
 
@@ -29,14 +85,35 @@ class CurrencyController extends Controller
             return back()->withErrors(['country' => 'País no válido.']);
         }
 
+        // Buscar equivalencia para el año y mes especificados
+        $equivalence = CurrencyEquivalence::where('currency_id', $currency->id)
+            ->where('year', $request->input('year'))
+            ->where('month', $request->input('month'))
+            ->first();
+
+        // Si no se encuentra equivalencia específica, usar la del modelo Currency como fallback
+        if (!$equivalence) {
+            $equivalenceValue = $currency->equivalence ?? 1.0;
+        } else {
+            $equivalenceValue = $equivalence->equivalence;
+        }
+
         $amount = $request->input('amount');
-        $converted = $amount / $currency->equivalence;
+        $converted = $amount / $equivalenceValue;
+
+        $monthNames = [
+            1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+            5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+            9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
+        ];
 
         return back()->with('result', [
             'currencyName' => $currency->currency,
-            'rate' => $currency->equivalence,
+            'rate' => $equivalenceValue,
             'converted' => round($converted, 2),
-            'amount' => $amount
+            'amount' => $amount,
+            'year' => $request->input('year'),
+            'month' => $monthNames[$request->input('month')]
         ]);
     }
 }

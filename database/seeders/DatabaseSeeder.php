@@ -12,11 +12,15 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
+        // Primero ejecutar CurrencySeeder para crear las monedas base
+        $this->call([
+            CurrencySeeder::class,
+        ]);
 
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
+        // Luego ejecutar CurrencyEquivalenceSeeder para scrapear y cargar equivalencias
+        // Nota: Este seeder puede tardar mucho tiempo ya que hace web scraping
+        // $this->call([
+        //     CurrencyEquivalenceSeeder::class,
         // ]);
     }
 }

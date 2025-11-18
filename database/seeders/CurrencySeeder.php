@@ -4,12 +4,14 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use App\Models\Currency;
 
 class CurrencySeeder extends Seeder
 {
     public function run()
     {
-        $currencies = [
+        // Monedas iniciales por defecto (se usarán si no se encuentran en el scraping)
+        $defaultCurrencies = [
             ['country' => 'Estados Unidos', 'currency' => 'Dólar EE.UU.', 'equivalence' => 1.0000],
             ['country' => 'Gran Bretaña', 'currency' => 'Libra Esterlina', 'equivalence' => 1.3546],
             ['country' => 'Suiza', 'currency' => 'Franco Suizo', 'equivalence' => 1.0835],
@@ -22,6 +24,17 @@ class CurrencySeeder extends Seeder
             ['country' => 'Brasil', 'currency' => 'Real Brasileño', 'equivalence' => 0.1852],
         ];
 
-        DB::table('currencies')->insert($currencies);
+        // Registrar monedas por defecto si no existen
+        foreach ($defaultCurrencies as $currencyData) {
+            Currency::firstOrCreate(
+                [
+                    'country' => $currencyData['country'],
+                    'currency' => $currencyData['currency']
+                ],
+                ['equivalence' => $currencyData['equivalence']]
+            );
+        }
+
+        $this->command->info('Monedas por defecto registradas/actualizadas.');
     }
 }

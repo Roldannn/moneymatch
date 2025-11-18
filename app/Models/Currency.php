@@ -11,4 +11,17 @@ class Currency extends Model
 
     protected $table = 'currencies';
     protected $fillable = ['country', 'currency', 'equivalence'];
+
+    public function equivalences()
+    {
+        return $this->hasMany(CurrencyEquivalence::class);
+    }
+
+    public function getEquivalenceForDate($year, $month)
+    {
+        return $this->equivalences()
+            ->where('year', $year)
+            ->where('month', $month)
+            ->first();
+    }
 }

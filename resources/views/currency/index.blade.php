@@ -41,9 +41,28 @@
                                     <option value="" disabled selected>Selecciona un país</option>
                                     @foreach ($currencies as $currency)
                                         <option value="{{ $currency->id }}">
-                                            {{ $currency->currency }} ({{ $currency->equivalence }})
+                                            {{ $currency->country }} - {{ $currency->currency }}
                                         </option>
                                     @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Selector de Año -->
+                            <div class="mb-3">
+                                <label for="year" class="form-label">Año:</label>
+                                <select id="year" name="year" class="form-select" required>
+                                    <option value="" disabled selected>Selecciona un año</option>
+                                    @foreach ($years as $year)
+                                        <option value="{{ $year }}">{{ $year }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Selector de Mes -->
+                            <div class="mb-3">
+                                <label for="month" class="form-label">Mes:</label>
+                                <select id="month" name="month" class="form-select" required>
+                                    <option value="" disabled selected>Primero selecciona un año</option>
                                 </select>
                             </div>
 
@@ -64,6 +83,7 @@
                             <div class="alert alert-success mt-3" role="alert">
                                 <p>
                                     Moneda: <strong>{{ session('result')['currencyName'] }}</strong><br>
+                                    Período: <strong>{{ session('result')['month'] }} {{ session('result')['year'] }}</strong><br>
                                     Tasa de conversión: <strong>{{ session('result')['rate'] }}</strong><br>
                                     Monto ingresado: <strong>{{ session('result')['amount'] }}</strong><br>
                                     Resultado: <strong>{{ session('result')['converted'] }}</strong>
@@ -98,5 +118,40 @@
 
     <!-- Incluir Bootstrap JS y Popper.js para funcionalidades avanzadas si es necesario -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+
+    <script>
+        // Datos de meses disponibles por año
+        const monthsByYear = @json($monthsByYear);
+        const monthNames = @json($monthNames);
+
+        const yearSelect = document.getElementById('year');
+        const monthSelect = document.getElementById('month');
+
+        // Actualizar meses cuando se selecciona un año
+        yearSelect.addEventListener('change', function() {
+            const selectedYear = parseInt(this.value);
+            monthSelect.innerHTML = '<option value="" disabled selected>Selecciona un mes</option>';
+
+            if (selectedYear && monthsByYear[selectedYear]) {
+                monthsByYear[selectedYear].forEach(function(monthNum) {
+                    const option = document.createElement('option');
+                    option.value = monthNum;
+                    option.textContent = monthNames[monthNum];
+                    monthSelect.appendChild(option);
+                });
+            }
+        });
+
+        // Si hay un año seleccionado previamente (después de un error de validación), cargar sus meses
+        @if(old('year'))
+            yearSelect.value = {{ old('year') }};
+            yearSelect.dispatchEvent(new Event('change'));
+            @if(old('month'))
+                setTimeout(function() {
+                    monthSelect.value = {{ old('month') }};
+                }, 100);
+            @endif
+        @endif
+    </script>
 </body>
 </html>
