@@ -58,6 +58,11 @@ class CurrencyController extends Controller
 
     public function convert(Request $request)
     {
+        // Normalizar el monto antes de validar (aceptar comas como separador decimal)
+        $request->merge([
+            'amount' => str_replace(',', '.', $request->input('amount'))
+        ]);
+        
         $request->validate([
             'country' => 'required|exists:currencies,id',
             'amount' => 'required|numeric|min:0',
@@ -98,8 +103,13 @@ class CurrencyController extends Controller
             $equivalenceValue = $equivalence->equivalence;
         }
 
-        $amount = $request->input('amount');
-        $converted = $amount / $equivalenceValue;
+        // Normalizar el monto (aceptar comas como separador decimal)
+        $amount = str_replace(',', '.', $request->input('amount'));
+        $amount = floatval($amount);
+        
+        // La equivalencia representa cuántas unidades de la moneda extranjera equivalen a 1 dólar
+        // Por lo tanto, para convertir a dólares: monto * equivalencia
+        $converted = $amount * $equivalenceValue;
 
         $monthNames = [
             1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',

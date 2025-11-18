@@ -544,14 +544,74 @@ class CurrencyEquivalenceSeeder extends Seeder
      */
     private function parseEquivalence($text)
     {
-        // Remover espacios y caracteres especiales
-        $text = trim($text);
-        // Reemplazar coma por punto si es necesario
-        $text = str_replace(',', '.', $text);
-        // Remover caracteres no numéricos excepto punto
-        $text = preg_replace('/[^\d.]/', '', $text);
+        // Guardar el texto original para validación
+        $originalText = trim($text);
         
-        return (float)$text;
+        // Remover espacios y caracteres especiales, mantener solo números, punto y coma
+        $text = preg_replace('/[^\d.,]/', '', $originalText);
+        
+        // Detectar formato:
+        // 1. Si hay punto Y coma: formato europeo (punto = miles, coma = decimal)
+        //    Ejemplo: "1.027,7500" -> "1027.7500"
+        // 2. Si solo hay coma: formato europeo (coma = decimal)
+        //    Ejemplo: "1027,7500" -> "1027.7500"
+        // 3. Si solo hay punto: puede ser decimal o miles
+        
+        $hasComma = strpos($text, ',') !== false;
+        $hasDot = strpos($text, '.') !== false;
+        
+        if ($hasComma && $hasDot) {
+            // Formato europeo con separador de miles: "1.027,7500"
+            // La coma es siempre el separador decimal, los puntos son separadores de miles
+            // Eliminar todos los puntos (separadores de miles) y reemplazar coma por punto
+            $text = str_replace('.', '', $text);
+            $text = str_replace(',', '.', $text);
+        } elseif ($hasComma && !$hasDot) {
+            // Solo coma: formato europeo decimal "1027,7500"
+            $text = str_replace(',', '.', $text);
+        } elseif (!$hasComma && $hasDot) {
+            // Solo punto: determinar si es decimal o separador de miles
+            $parts = explode('.', $text);
+            if (count($parts) == 2) {
+                // Hay una parte después del punto
+                $decimalPart = $parts[1];
+                $integerPart = $parts[0];
+                
+                // Si la parte decimal tiene más de 2 dígitos, es decimal
+                // Si tiene 2 o menos dígitos y la parte entera tiene más de 3 dígitos, podría ser separador de miles
+                if (strlen($decimalPart) > 2) {
+                    // Más de 2 decimales: definitivamente es decimal
+                    // "1027.7500" -> mantener como "1027.7500"
+                } elseif (strlen($integerPart) > 3 && strlen($decimalPart) <= 2) {
+                    // Parte entera grande con pocos decimales: probablemente separador de miles
+                    // "1.027" -> "1027"
+                    $text = str_replace('.', '', $text);
+                }
+                // Si tiene 2 decimales y parte entera pequeña, mantener como decimal
+            } else {
+                // Múltiples puntos: separadores de miles (ej: "1.234.567")
+                $text = str_replace('.', '', $text);
+            }
+        }
+        
+        // Convertir a float
+        $result = (float)$text;
+        
+        // Validación adicional: si el resultado es 0 pero el texto original tenía números, intentar parseo alternativo
+        if ($result == 0 && preg_match('/[1-9]/', $originalText)) {
+            // Reintentar con el texto original limpio
+            $cleanText = preg_replace('/[^\d.,]/', '', $originalText);
+            
+            // Intentar como formato europeo puro (asumir que todos los puntos son miles)
+            if (strpos($cleanText, ',') !== false) {
+                // Hay coma, tratar como formato europeo
+                $cleanText = str_replace('.', '', $cleanText);
+                $cleanText = str_replace(',', '.', $cleanText);
+                $result = (float)$cleanText;
+            }
+        }
+        
+        return $result;
     }
 
     /**
