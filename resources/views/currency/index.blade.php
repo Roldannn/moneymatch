@@ -553,16 +553,17 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
 
     <script>
-        // Datos de meses disponibles por año
         const monthsByYear = @json($monthsByYear);
         const monthNames = @json($monthNames);
-
         const yearSelect = document.getElementById('year');
         const monthSelect = document.getElementById('month');
         const form = document.getElementById('conversionForm');
         const submitBtn = document.getElementById('submitBtn');
+        const amountInput = document.getElementById('amount');
 
-        // Actualizar meses cuando se selecciona un año
+        /**
+         * Actualiza los meses disponibles cuando se selecciona un año
+         */
         yearSelect.addEventListener('change', function() {
             const selectedYear = parseInt(this.value);
             monthSelect.innerHTML = '<option value="" disabled selected>Selecciona un mes</option>';
@@ -577,7 +578,6 @@
             }
         });
 
-        // Si hay un año seleccionado previamente (después de un error de validación), cargar sus meses
         @if(old('year'))
             yearSelect.value = {{ old('year') }};
             yearSelect.dispatchEvent(new Event('change'));
@@ -588,83 +588,71 @@
             @endif
         @endif
 
-        // Loading state en el botón
+        /**
+         * Muestra estado de carga en el botón al enviar el formulario
+         */
         form.addEventListener('submit', function() {
             submitBtn.classList.add('btn-loading');
             submitBtn.disabled = true;
         });
 
-        // Formatear input de monto mientras se escribe - permite comas y puntos como separadores decimales
-        const amountInput = document.getElementById('amount');
-
+        /**
+         * Formatea el input de monto permitiendo comas y puntos como separadores decimales
+         */
         amountInput.addEventListener('input', function(e) {
             const input = e.target;
             const cursorPosition = input.selectionStart;
             let value = input.value;
             const originalValue = value;
 
-            // Reemplazar comas por puntos para compatibilidad
             value = value.replace(/,/g, '.');
-
-            // Permitir solo números y un punto decimal
             value = value.replace(/[^\d.]/g, '');
 
-            // Asegurar solo un punto decimal
             const parts = value.split('.');
             if (parts.length > 2) {
                 value = parts[0] + '.' + parts.slice(1).join('');
             }
 
-            // Solo actualizar si el valor cambió
             if (value !== originalValue) {
-                // Calcular la nueva posición del cursor
-                // Si se reemplazó una coma, mantener la posición
                 const commaCount = (originalValue.substring(0, cursorPosition).match(/,/g) || []).length;
                 const newCursorPosition = cursorPosition - commaCount + (value.substring(0, cursorPosition - commaCount).match(/\./g) || []).length;
 
                 input.value = value;
 
-                // Restaurar la posición del cursor
                 setTimeout(function() {
                     input.setSelectionRange(newCursorPosition, newCursorPosition);
                 }, 0);
             }
         });
 
-        // Manejar el evento keydown para permitir comas y puntos
+        /**
+         * Maneja el evento keydown para permitir comas y puntos como separadores decimales
+         */
         amountInput.addEventListener('keydown', function(e) {
             const input = e.target;
             const value = input.value;
-            const cursorPosition = input.selectionStart;
 
-            // Permitir: backspace, delete, tab, escape, enter
             if ([46, 8, 9, 27, 13].indexOf(e.keyCode) !== -1 ||
-                // Permitir: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
                 (e.keyCode === 65 && e.ctrlKey === true) ||
                 (e.keyCode === 67 && e.ctrlKey === true) ||
                 (e.keyCode === 86 && e.ctrlKey === true) ||
                 (e.keyCode === 88 && e.ctrlKey === true) ||
-                // Permitir: home, end, left, right
                 (e.keyCode >= 35 && e.keyCode <= 39)) {
                 return;
             }
 
-            // Permitir punto (190) y coma (188)
             if (e.keyCode === 190 || e.keyCode === 188 || e.keyCode === 110) {
-                // Verificar si ya existe un punto o coma
                 if (value.indexOf('.') !== -1 || value.indexOf(',') !== -1) {
                     e.preventDefault();
                 }
                 return;
             }
 
-            // Asegurar que es un número
             if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
                 e.preventDefault();
             }
         });
 
-        // Scroll suave al resultado
         @if(session('result'))
             setTimeout(function() {
                 document.querySelector('.result-card').scrollIntoView({

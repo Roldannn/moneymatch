@@ -11,6 +11,9 @@ class CurrencyEquivalence extends Model
 
     protected $fillable = ['currency_id', 'year', 'month', 'equivalence'];
 
+    /**
+     * Relación con la moneda
+     */
     public function currency()
     {
         return $this->belongsTo(Currency::class);

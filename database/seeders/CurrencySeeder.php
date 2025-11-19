@@ -3,14 +3,22 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use App\Models\Currency;
+use App\Repositories\CurrencyRepository;
 
 class CurrencySeeder extends Seeder
 {
+    private CurrencyRepository $currencyRepository;
+
+    public function __construct(CurrencyRepository $currencyRepository)
+    {
+        $this->currencyRepository = $currencyRepository;
+    }
+
+    /**
+     * Registra las monedas por defecto si no existen
+     */
     public function run()
     {
-        // Monedas iniciales por defecto (se usarán si no se encuentran en el scraping)
         $defaultCurrencies = [
             ['country' => 'Estados Unidos', 'currency' => 'Dólar EE.UU.', 'equivalence' => 1.0000],
             ['country' => 'Gran Bretaña', 'currency' => 'Libra Esterlina', 'equivalence' => 1.3546],
@@ -24,9 +32,8 @@ class CurrencySeeder extends Seeder
             ['country' => 'Brasil', 'currency' => 'Real Brasileño', 'equivalence' => 0.1852],
         ];
 
-        // Registrar monedas por defecto si no existen
         foreach ($defaultCurrencies as $currencyData) {
-            Currency::firstOrCreate(
+            $this->currencyRepository->firstOrCreate(
                 [
                     'country' => $currencyData['country'],
                     'currency' => $currencyData['currency']
