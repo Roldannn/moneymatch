@@ -357,7 +357,7 @@ class CurrencyScrapingService
             $data['country'] = $this->extractCountryFromCurrency($data['currency']);
         }
 
-        $currencyModel = $this->currencyRepository->firstOrCreate(
+        $currencyModel = \App\Models\Currency::firstOrCreate(
             [
                 'country' => $data['country'],
                 'currency' => $data['currency']
@@ -365,7 +365,7 @@ class CurrencyScrapingService
             ['equivalence' => $equivalence]
         );
 
-        $this->equivalenceRepository->updateOrCreate(
+        \App\Models\CurrencyEquivalence::updateOrCreate(
             [
                 'currency_id' => $currencyModel->id,
                 'year' => $year,

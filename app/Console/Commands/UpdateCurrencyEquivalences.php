@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Services\CurrencyScrapingService;
-use App\Repositories\CurrencyRepository;
 use App\Repositories\CurrencyEquivalenceRepository;
 
 class UpdateCurrencyEquivalences extends Command
@@ -19,17 +18,14 @@ class UpdateCurrencyEquivalences extends Command
     protected $description = 'Actualiza las equivalencias de monedas desde aduana.cl';
 
     private CurrencyScrapingService $scrapingService;
-    private CurrencyRepository $currencyRepository;
     private CurrencyEquivalenceRepository $equivalenceRepository;
 
     public function __construct(
         CurrencyScrapingService $scrapingService,
-        CurrencyRepository $currencyRepository,
         CurrencyEquivalenceRepository $equivalenceRepository
     ) {
         parent::__construct();
         $this->scrapingService = $scrapingService;
-        $this->currencyRepository = $currencyRepository;
         $this->equivalenceRepository = $equivalenceRepository;
     }
 
@@ -41,7 +37,7 @@ class UpdateCurrencyEquivalences extends Command
         $this->info('🔄 Iniciando actualización de equivalencias...');
         $this->newLine();
 
-        if ($this->currencyRepository->findById(1) === null && \App\Models\Currency::count() == 0) {
+        if (\App\Models\Currency::count() == 0) {
             $this->error('❌ No hay monedas registradas. Ejecuta primero: php artisan db:seed --class=CurrencySeeder');
             return Command::FAILURE;
         }

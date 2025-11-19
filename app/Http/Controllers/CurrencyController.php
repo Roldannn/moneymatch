@@ -5,22 +5,19 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Services\CurrencyDataService;
 use App\Services\CurrencyConversionService;
-use App\Repositories\CurrencyRepository;
+use App\Models\Currency;
 
 class CurrencyController extends Controller
 {
     private CurrencyDataService $dataService;
     private CurrencyConversionService $conversionService;
-    private CurrencyRepository $currencyRepository;
 
     public function __construct(
         CurrencyDataService $dataService,
-        CurrencyConversionService $conversionService,
-        CurrencyRepository $currencyRepository
+        CurrencyConversionService $conversionService
     ) {
         $this->dataService = $dataService;
         $this->conversionService = $conversionService;
-        $this->currencyRepository = $currencyRepository;
     }
 
     /**
@@ -58,7 +55,7 @@ class CurrencyController extends Controller
             return back()->withErrors($dateErrors)->withInput();
         }
 
-        $currency = $this->currencyRepository->findById($request->input('country'));
+        $currency = Currency::find($request->input('country'));
 
         if (!$currency) {
             return back()->withErrors(['country' => 'País no válido.'])->withInput();

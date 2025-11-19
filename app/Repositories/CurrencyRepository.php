@@ -13,26 +13,10 @@ class CurrencyRepository
     public function getCurrenciesWithEquivalences(): Collection
     {
         $currencyIds = \App\Models\CurrencyEquivalence::distinct()->pluck('currency_id');
-        
+
         return Currency::whereIn('id', $currencyIds)
             ->orderBy('country')
             ->get();
-    }
-
-    /**
-     * Busca una moneda por ID
-     */
-    public function findById(int $id): ?Currency
-    {
-        return Currency::find($id);
-    }
-
-    /**
-     * Crea o busca una moneda existente
-     */
-    public function firstOrCreate(array $attributes, array $values = []): Currency
-    {
-        return Currency::firstOrCreate($attributes, $values);
     }
 }
 

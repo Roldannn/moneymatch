@@ -64,7 +64,7 @@ class CurrencyConversionService
             return (float) $equivalence->equivalence;
         }
 
-        $currency = $this->currencyRepository->findById($currencyId);
+        $currency = \App\Models\Currency::find($currencyId);
         
         if ($currency && $currency->equivalence && $currency->equivalence > 0) {
             return (float) $currency->equivalence;

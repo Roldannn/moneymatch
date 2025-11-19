@@ -3,16 +3,10 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Repositories\CurrencyRepository;
+use App\Models\Currency;
 
 class CurrencySeeder extends Seeder
 {
-    private CurrencyRepository $currencyRepository;
-
-    public function __construct(CurrencyRepository $currencyRepository)
-    {
-        $this->currencyRepository = $currencyRepository;
-    }
 
     /**
      * Registra las monedas por defecto si no existen
@@ -33,7 +27,7 @@ class CurrencySeeder extends Seeder
         ];
 
         foreach ($defaultCurrencies as $currencyData) {
-            $this->currencyRepository->firstOrCreate(
+            Currency::firstOrCreate(
                 [
                     'country' => $currencyData['country'],
                     'currency' => $currencyData['currency']

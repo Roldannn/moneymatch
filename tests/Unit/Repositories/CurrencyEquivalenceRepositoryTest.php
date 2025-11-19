@@ -125,30 +125,5 @@ class CurrencyEquivalenceRepositoryTest extends TestCase
         $this->assertEquals($equivalence->id, $result->id);
         $this->assertEquals(1.5, $result->equivalence);
     }
-
-    /**
-     * Prueba crear o actualizar equivalencia
-     */
-    public function test_update_or_create(): void
-    {
-        $currency = Currency::factory()->create();
-
-        $result = $this->repository->updateOrCreate(
-            ['currency_id' => $currency->id, 'year' => 2024, 'month' => 1],
-            ['equivalence' => 1.25]
-        );
-
-        $this->assertNotNull($result->id);
-        $this->assertEquals(1.25, $result->equivalence);
-
-        $updated = $this->repository->updateOrCreate(
-            ['currency_id' => $currency->id, 'year' => 2024, 'month' => 1],
-            ['equivalence' => 1.30]
-        );
-
-        $this->assertEquals($result->id, $updated->id);
-        $this->assertEquals(1.30, $updated->equivalence);
-        $this->assertEquals(1, CurrencyEquivalence::count());
-    }
 }
 

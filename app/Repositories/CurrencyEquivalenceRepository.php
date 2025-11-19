@@ -74,13 +74,5 @@ class CurrencyEquivalenceRepository
             ->where('month', $month)
             ->first();
     }
-
-    /**
-     * Crea o actualiza una equivalencia
-     */
-    public function updateOrCreate(array $attributes, array $values): CurrencyEquivalence
-    {
-        return CurrencyEquivalence::updateOrCreate($attributes, $values);
-    }
 }
 
