@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Goutte\Client;
+use Symfony\Component\HttpClient\HttpClient;
 use App\Repositories\CurrencyRepository;
 use App\Repositories\CurrencyEquivalenceRepository;
 
@@ -16,7 +17,15 @@ class CurrencyScrapingService
         CurrencyRepository $currencyRepository,
         CurrencyEquivalenceRepository $equivalenceRepository
     ) {
-        $this->client = new Client();
+        // Configurar cliente HTTP de Symfony para ignorar verificación SSL en desarrollo
+        $httpClient = HttpClient::create([
+            'verify_peer' => false, // Deshabilitar verificación SSL (solo para desarrollo)
+            'verify_host' => false, // Deshabilitar verificación de host
+            'timeout' => 30,
+            'max_redirects' => 5,
+        ]);
+        
+        $this->client = new Client($httpClient);
         $this->currencyRepository = $currencyRepository;
         $this->equivalenceRepository = $equivalenceRepository;
     }
@@ -499,6 +508,118 @@ class CurrencyScrapingService
         }
 
         return 'https://www.aduana.cl/' . $href;
+    }
+
+    /**
+     * Verifica y actualiza los meses faltantes del año en curso
+     * Solo ejecuta scraping si el mes actual no tiene datos
+     * Actualiza el mes actual y todos los meses anteriores del año que falten
+     */
+    public function updateMissingMonthsForCurrentYear(string $url): int
+    {
+        $currentYear = (int) date('Y');
+        $currentMonth = (int) date('n');
+
+        // Verificar si el mes actual tiene datos
+        if ($this->equivalenceRepository->currentMonthExists()) {
+            return 0; // No hay nada que actualizar
+        }
+
+        // Obtener meses faltantes del año en curso
+        $missingMonths = $this->equivalenceRepository->getMissingMonths($currentYear);
+        
+        if (empty($missingMonths)) {
+            return 0; // No hay meses faltantes
+        }
+
+        // Filtrar solo los meses hasta el mes actual (no podemos scrapear meses futuros)
+        $monthsToScrape = array_values(array_filter($missingMonths, function($month) use ($currentMonth) {
+            return $month <= $currentMonth;
+        }));
+
+        if (empty($monthsToScrape)) {
+            return 0; // No hay meses válidos para scrapear
+        }
+
+        // Scrapear el año actual, pero solo procesar los meses que faltan
+        $rowsProcessed = 0;
+        
+        try {
+            $crawler = $this->client->request('GET', $url);
+            
+            // Buscar enlaces a meses del año actual
+            $crawler->filter('a')->each(function ($node) use ($currentYear, $monthsToScrape, &$rowsProcessed) {
+                $href = $node->attr('href');
+                $text = trim($node->text());
+                
+                if ($href && strpos($href, 'equivalencias') !== false) {
+                    if (preg_match('/equivalencias-(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)-(\d{4})/i', $href, $matches)) {
+                        $month = $this->monthNameToNumber($matches[1]);
+                        $yearFromUrl = (int)$matches[2];
+                        
+                        // Solo procesar si es el año actual y el mes está en la lista de meses faltantes
+                        if ($yearFromUrl == $currentYear && in_array($month, $monthsToScrape)) {
+                            $fullUrl = $this->buildFullUrl($href);
+                            $result = $this->scrapeEquivalencePage($fullUrl, $yearFromUrl, $month);
+                            if ($result) {
+                                $rowsProcessed += $result;
+                            }
+                        }
+                    }
+                }
+            });
+
+            // También buscar en las tablas
+            $crawler->filter('table tr')->each(function ($row) use ($currentYear, $monthsToScrape, &$rowsProcessed) {
+                $cells = $row->filter('td');
+                
+                if ($cells->count() > 0) {
+                    $firstCell = trim($cells->eq(0)->text());
+                    
+                    if (preg_match('/^(\d{4})$/', $firstCell, $yearMatches)) {
+                        $year = (int)$yearMatches[1];
+                        
+                        if ($year == $currentYear) {
+                            for ($i = 1; $i < $cells->count(); $i++) {
+                                $cell = $cells->eq($i);
+                                $cell->filter('a')->each(function ($link) use ($currentYear, $monthsToScrape, &$rowsProcessed) {
+                                    $href = $link->attr('href');
+                                    $text = trim($link->text());
+                                    
+                                    $month = $this->extractMonthFromText($text);
+                                    if ($month && $href && in_array($month, $monthsToScrape)) {
+                                        $fullUrl = $this->buildFullUrl($href);
+                                        $result = $this->scrapeEquivalencePage($fullUrl, $currentYear, $month);
+                                        if ($result) {
+                                            $rowsProcessed += $result;
+                                        }
+                                    } elseif ($href && strpos($href, 'equivalencias') !== false) {
+                                        if (preg_match('/equivalencias-(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)-(\d{4})/i', $href, $matches)) {
+                                            $month = $this->monthNameToNumber($matches[1]);
+                                            $yearFromUrl = (int)$matches[2];
+                                            
+                                            if ($yearFromUrl == $currentYear && in_array($month, $monthsToScrape)) {
+                                                $fullUrl = $this->buildFullUrl($href);
+                                                $result = $this->scrapeEquivalencePage($fullUrl, $yearFromUrl, $month);
+                                                if ($result) {
+                                                    $rowsProcessed += $result;
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (\Exception $e) {
+            // Silenciar errores de scraping para no interrumpir la carga de la página
+            \Illuminate\Support\Facades\Log::warning('Error al actualizar meses faltantes: ' . $e->getMessage());
+            return 0;
+        }
+
+        return $rowsProcessed;
     }
 }
 

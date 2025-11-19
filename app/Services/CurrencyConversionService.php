@@ -75,10 +75,15 @@ class CurrencyConversionService
 
     /**
      * Convierte un monto de una moneda extranjera a dólares
+     * La equivalencia representa cuántas unidades de la moneda extranjera equivalen a 1 USD
+     * Por lo tanto, para convertir a USD se debe dividir el monto por la equivalencia
      */
     public function convertToDollars(float $amount, float $equivalenceValue): float
     {
-        return $amount * $equivalenceValue;
+        if ($equivalenceValue == 0) {
+            return 0;
+        }
+        return $amount / $equivalenceValue;
     }
 
     /**

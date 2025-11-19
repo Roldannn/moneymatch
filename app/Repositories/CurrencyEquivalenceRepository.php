@@ -74,5 +74,31 @@ class CurrencyEquivalenceRepository
             ->where('month', $month)
             ->first();
     }
+
+    /**
+     * Obtiene los meses que faltan para un año específico
+     * Retorna un array con los números de mes (1-12) que no tienen datos
+     */
+    public function getMissingMonths(int $year): array
+    {
+        $existingMonths = CurrencyEquivalence::where('year', $year)
+            ->distinct()
+            ->pluck('month')
+            ->toArray();
+
+        $allMonths = range(1, 12);
+        return array_diff($allMonths, $existingMonths);
+    }
+
+    /**
+     * Verifica si existe al menos una equivalencia para el mes actual del año actual
+     */
+    public function currentMonthExists(): bool
+    {
+        $currentYear = (int) date('Y');
+        $currentMonth = (int) date('n');
+
+        return $this->monthExists($currentYear, $currentMonth);
+    }
 }
 

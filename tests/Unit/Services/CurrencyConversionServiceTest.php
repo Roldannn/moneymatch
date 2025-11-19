@@ -157,12 +157,34 @@ class CurrencyConversionServiceTest extends TestCase
 
     /**
      * Prueba convertir a dólares
+     * Si 1 USD = 1.5 unidades de la moneda extranjera, entonces 1000 unidades = 1000/1.5 = 666.67 USD
      */
     public function test_convert_to_dollars(): void
     {
         $result = $this->service->convertToDollars(1000, 1.5);
 
-        $this->assertEquals(1500, $result);
+        $this->assertEquals(666.6666666666666, $result);
+    }
+
+    /**
+     * Prueba convertir pesos argentinos a dólares con tasa específica
+     * 1000 ARS con tasa 1,168.666700 debería dar aproximadamente 0.855675959621336 USD
+     */
+    public function test_convert_to_dollars_argentine_pesos(): void
+    {
+        $result = $this->service->convertToDollars(1000, 1168.666700);
+
+        $this->assertEqualsWithDelta(0.855675959621336, $result, 0.0000000001);
+    }
+
+    /**
+     * Prueba convertir a dólares cuando la equivalencia es cero
+     */
+    public function test_convert_to_dollars_zero_equivalence(): void
+    {
+        $result = $this->service->convertToDollars(1000, 0);
+
+        $this->assertEquals(0, $result);
     }
 
     /**

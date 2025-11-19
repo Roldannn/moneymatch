@@ -225,6 +225,9 @@
             font-size: 2.5rem;
             font-weight: 700;
             margin: 0.5rem 0;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.2;
         }
 
         .result-main-label {
@@ -315,7 +318,7 @@
             }
 
             .result-main-value {
-                font-size: 2rem;
+                font-size: 1.5rem;
             }
         }
 
@@ -509,7 +512,7 @@
                                         <i class="bi bi-arrow-right-circle"></i> Equivalente en Dólares (USD)
                                     </div>
                                     <div class="result-main-value">
-                                        ${{ number_format(session('result')['converted'], 2) }} USD
+                                        ${{ number_format(session('result')['converted'], 10, '.', ',') }} USD
                                     </div>
                                 </div>
                             </div>
